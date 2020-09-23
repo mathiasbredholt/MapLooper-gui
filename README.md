@@ -1,3 +1,5 @@
+<img src="misc/mapperGUI.png" width="600">
+
 # mapperGUI
 A simple JUCE-based GUI with sliders and buttons for testing libmapper applications
 
