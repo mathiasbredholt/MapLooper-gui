@@ -117,6 +117,17 @@ class MainComponent : public Component,
                      0);
     mpr_obj_set_prop(inputSigButton2, MPR_PROP_DATA, 0, 1, MPR_PTR, &button2,
                      0);
+    
+    while (!mpr_dev_get_is_ready(dev)) {
+      mpr_dev_poll(dev, 10);
+    }
+    
+    // Refresh all stale maps
+    mpr_list maps = mpr_graph_get_objs(mpr_obj_get_graph(dev), MPR_MAP);
+    while (maps) {
+      mpr_map_refresh(*maps);
+      maps = mpr_list_get_next(maps);
+    }
 
     startTimer(10);
   }
