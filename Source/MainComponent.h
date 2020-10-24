@@ -10,7 +10,7 @@
 
 #include <JuceHeader.h>
 
-#include "mapper/mapper.h"
+#include "MapLooper/MapLooper.hpp"
 
 //==============================================================================
 /*
@@ -24,186 +24,129 @@ class MainComponent : public Component,
  public:
   //==============================================================================
   MainComponent() {
-    addAndMakeVisible(slider1);
-    addAndMakeVisible(slider2);
-    addAndMakeVisible(slider3);
-    addAndMakeVisible(slider4);
-    addAndMakeVisible(button1);
-    addAndMakeVisible(button2);
+    addAndMakeVisible(inputSlider);
+    addAndMakeVisible(delaySlider);
+    addAndMakeVisible(modulationSlider);
+    addAndMakeVisible(outputSlider);
+    addAndMakeVisible(muteButton);
+    // addAndMakeVisible(button2);
 
-    slider1.addListener(this);
-    slider2.addListener(this);
-    slider3.addListener(this);
-    slider4.addListener(this);
-    button1.addListener(this);
+    loop = mapLooper.createLoop("loop1");
+
+    inputSlider.addListener(this);
+    delaySlider.addListener(this);
+    modulationSlider.addListener(this);
+    outputSlider.addListener(this);
+    muteButton.addListener(this);
     button2.addListener(this);
 
-    slider1Label.setText("slider1", juce::dontSendNotification);
-    slider1Label.attachToComponent(&slider1, true);
+    inputSliderLabel.setText("input", juce::dontSendNotification);
+    inputSliderLabel.attachToComponent(&inputSlider, true);
 
-    slider2Label.setText("slider2", juce::dontSendNotification);
-    slider2Label.attachToComponent(&slider2, true);
+    delaySliderLabel.setText("delay", juce::dontSendNotification);
+    delaySliderLabel.attachToComponent(&delaySlider, true);
 
-    slider3Label.setText("slider3", juce::dontSendNotification);
-    slider3Label.attachToComponent(&slider3, true);
+    modulationSliderLabel.setText("mod", juce::dontSendNotification);
+    modulationSliderLabel.attachToComponent(&modulationSlider, true);
 
-    slider4Label.setText("slider4", juce::dontSendNotification);
-    slider4Label.attachToComponent(&slider4, true);
+    outputSliderLabel.setText("output", juce::dontSendNotification);
+    outputSliderLabel.attachToComponent(&outputSlider, true);
 
-    button1Label.setText("button1", juce::dontSendNotification);
-    button1Label.attachToComponent(&button1, true);
+    muteButtonLabel.setText("muted", juce::dontSendNotification);
+    muteButtonLabel.attachToComponent(&muteButton, true);
 
     button2Label.setText("button2", juce::dontSendNotification);
     button2Label.attachToComponent(&button2, true);
 
     setSize(600, 400);
 
-    // Create libmapper device
-    dev = mpr_dev_new("mapperGUI", 0);
-
-    // Create output signals
-    float sliderMin = 0.0f, sliderMax = 1.0f;
-    int buttonMin = 0, buttonMax = 1;
-
-    slider1.setRange(sliderMin, sliderMax);
-    slider2.setRange(sliderMin, sliderMax);
-    slider3.setRange(sliderMin, sliderMax);
-    slider4.setRange(sliderMin, sliderMax);
-
-    sigSlider1 = mpr_sig_new(dev, MPR_DIR_OUT, "out/slider1", 1, MPR_FLT, 0,
-                             &sliderMin, &sliderMax, 0, 0, 0);
-    sigSlider2 = mpr_sig_new(dev, MPR_DIR_OUT, "out/slider2", 1, MPR_FLT, 0,
-                             &sliderMin, &sliderMax, 0, 0, 0);
-    sigSlider3 = mpr_sig_new(dev, MPR_DIR_OUT, "out/slider3", 1, MPR_FLT, 0,
-                             &sliderMin, &sliderMax, 0, 0, 0);
-    sigSlider4 = mpr_sig_new(dev, MPR_DIR_OUT, "out/slider4", 1, MPR_FLT, 0,
-                             &sliderMin, &sliderMax, 0, 0, 0);
-    sigButton1 = mpr_sig_new(dev, MPR_DIR_OUT, "out/button1", 1, MPR_INT32, 0,
-                             &buttonMin, &buttonMax, 0, 0, 0);
-    sigButton2 = mpr_sig_new(dev, MPR_DIR_OUT, "out/button2", 1, MPR_INT32, 0,
-                             &buttonMin, &buttonMax, 0, 0, 0);
-
-    // Create input signals
-
-    inputSigSlider1 =
-        mpr_sig_new(dev, MPR_DIR_IN, "in/slider1", 1, MPR_FLT, 0, &sliderMin,
-                    &sliderMax, 0, sliderHandler, MPR_SIG_UPDATE);
-
-    inputSigSlider2 =
-        mpr_sig_new(dev, MPR_DIR_IN, "in/slider2", 1, MPR_FLT, 0, &sliderMin,
-                    &sliderMax, 0, sliderHandler, MPR_SIG_UPDATE);
-    inputSigSlider3 =
-        mpr_sig_new(dev, MPR_DIR_IN, "in/slider3", 1, MPR_FLT, 0, &sliderMin,
-                    &sliderMax, 0, sliderHandler, MPR_SIG_UPDATE);
-    inputSigSlider4 =
-        mpr_sig_new(dev, MPR_DIR_IN, "in/slider4", 1, MPR_FLT, 0, &sliderMin,
-                    &sliderMax, 0, sliderHandler, MPR_SIG_UPDATE);
-    inputSigButton1 =
-        mpr_sig_new(dev, MPR_DIR_IN, "in/button1", 1, MPR_INT32, 0, &buttonMin,
-                    &buttonMax, 0, buttonHandler, MPR_SIG_UPDATE);
-    inputSigButton2 =
-        mpr_sig_new(dev, MPR_DIR_IN, "in/button2", 1, MPR_INT32, 0, &buttonMin,
-                    &buttonMax, 0, buttonHandler, MPR_SIG_UPDATE);
-
-    mpr_obj_set_prop(inputSigSlider1, MPR_PROP_DATA, 0, 1, MPR_PTR, &slider1,
-                     0);
-    mpr_obj_set_prop(inputSigSlider2, MPR_PROP_DATA, 0, 1, MPR_PTR, &slider2,
-                     0);
-    mpr_obj_set_prop(inputSigSlider3, MPR_PROP_DATA, 0, 1, MPR_PTR, &slider3,
-                     0);
-    mpr_obj_set_prop(inputSigSlider4, MPR_PROP_DATA, 0, 1, MPR_PTR, &slider4,
-                     0);
-    mpr_obj_set_prop(inputSigButton1, MPR_PROP_DATA, 0, 1, MPR_PTR, &button1,
-                     0);
-    mpr_obj_set_prop(inputSigButton2, MPR_PROP_DATA, 0, 1, MPR_PTR, &button2,
-                     0);
-    
-    while (!mpr_dev_get_is_ready(dev)) {
-      mpr_dev_poll(dev, 10);
-    }
-    
-    // Refresh all stale maps
-    mpr_list maps = mpr_graph_get_objs(mpr_obj_get_graph(dev), MPR_MAP);
-    while (maps) {
-      mpr_map_refresh(*maps);
-      maps = mpr_list_get_next(maps);
-    }
+    inputSlider.setRange(0, 1);
+    delaySlider.setRange(-100, -1, 1);
+    delaySlider.setValue(-100);
+    modulationSlider.setRange(0, 1);
+    outputSlider.setRange(0, 1);
 
     startTimer(10);
   }
 
   ~MainComponent() {}
 
-  void timerCallback() override { mpr_dev_poll(dev, 0); }
+  void timerCallback() override {
+    mapLooper.update(0);
+    const void* val = mpr_sig_get_value(loop->sigOut, 0, 0);
+    if (val) {
+      const MessageManagerLock mmLock;
+      outputSlider.setValue(*((float*)val));
+    }
+  }
 
   //==============================================================================
   void paint(Graphics& g) override {}
 
   void resized() override {
     auto area = getLocalBounds().reduced(96, 48);
-    slider1.setBounds(area.removeFromTop(48));
-    slider2.setBounds(area.removeFromTop(48));
-    slider3.setBounds(area.removeFromTop(48));
-    slider4.setBounds(area.removeFromTop(48));
-    button1.setBounds(area.removeFromTop(48));
+    inputSlider.setBounds(area.removeFromTop(48));
+    delaySlider.setBounds(area.removeFromTop(48));
+    modulationSlider.setBounds(area.removeFromTop(48));
+    outputSlider.setBounds(area.removeFromTop(48));
+    muteButton.setBounds(area.removeFromTop(48));
     button2.setBounds(area.removeFromTop(48));
   }
 
   void sliderValueChanged(Slider* slider) override {
-    if (slider == &slider1) {
-      float val = slider1.getValue();
-      mpr_sig_set_value(sigSlider1, 0, 1, MPR_FLT, &val);
-    } else if (slider == &slider2) {
-      float val = slider2.getValue();
-      mpr_sig_set_value(sigSlider2, 0, 1, MPR_FLT, &val);
-    } else if (slider == &slider3) {
-      float val = slider3.getValue();
-      mpr_sig_set_value(sigSlider3, 0, 1, MPR_FLT, &val);
-    } else if (slider == &slider4) {
-      float val = slider4.getValue();
-      mpr_sig_set_value(sigSlider4, 0, 1, MPR_FLT, &val);
+    if (slider == &inputSlider) {
+      float val = inputSlider.getValue();
+      mpr_sig_set_value(loop->sigIn, 0, 1, MPR_FLT, &val);
+    } else if (slider == &delaySlider) {
+      float val = delaySlider.getValue();
+      mpr_sig_set_value(loop->sigDelay, 0, 1, MPR_FLT, &val);
+    } else if (slider == &modulationSlider) {
+      float val = modulationSlider.getValue();
+      mpr_sig_set_value(loop->sigMod, 0, 1, MPR_FLT, &val);
+    }
+  }
+
+  void sliderDragStarted(Slider* slider) override {
+    float val = 1.0f;
+    if (slider == &inputSlider) {
+      mpr_sig_set_value(loop->sigRecord, 0, 1, MPR_FLT, &val);
+    }
+  }
+
+  void sliderDragEnded(Slider* slider) override {
+    float val = 0.0f;
+    if (slider == &inputSlider) {
+      mpr_sig_set_value(loop->sigRecord, 0, 1, MPR_FLT, &val);
     }
   }
 
   void buttonClicked(Button* button) override {}
 
   void buttonStateChanged(Button* button) override {
-    if (button == &button1) {
-      int val = button1.getToggleState();
-      mpr_sig_set_value(sigButton1, 0, 1, MPR_INT32, &val);
+    if (button == &muteButton) {
+      int val = muteButton.getToggleState();
+      mpr_sig_set_value(loop->sigMute, 0, 1, MPR_INT32, &val);
     } else if (button == &button2) {
       int val = button2.getToggleState();
-      mpr_sig_set_value(sigButton2, 0, 1, MPR_INT32, &val);
+      // mpr_sig_set_value(sigButton2, 0, 1, MPR_INT32, &val);
     }
   }
 
  private:
-  Slider slider1;
-  Label slider1Label;
-  Slider slider2;
-  Label slider2Label;
-  Slider slider3;
-  Label slider3Label;
-  Slider slider4;
-  Label slider4Label;
-  ToggleButton button1;
-  Label button1Label;
+  Slider inputSlider;
+  Label inputSliderLabel;
+  Slider delaySlider;
+  Label delaySliderLabel;
+  Slider modulationSlider;
+  Label modulationSliderLabel;
+  Slider outputSlider;
+  Label outputSliderLabel;
+  ToggleButton muteButton;
+  Label muteButtonLabel;
   ToggleButton button2;
   Label button2Label;
-  mpr_dev dev;
-  mpr_sig sigSlider1;
-  mpr_sig sigSlider2;
-  mpr_sig sigSlider3;
-  mpr_sig sigSlider4;
-  mpr_sig sigButton1;
-  mpr_sig sigButton2;
-
-  mpr_sig inputSigSlider1;
-  mpr_sig inputSigSlider2;
-  mpr_sig inputSigSlider3;
-  mpr_sig inputSigSlider4;
-  mpr_sig inputSigButton1;
-  mpr_sig inputSigButton2;
+  MapLooper::MapLooper mapLooper;
+  MapLooper::Loop* loop;
 
   static void sliderHandler(mpr_sig sig, mpr_sig_evt evt, mpr_id inst,
                             int length, mpr_type type, const void* value,

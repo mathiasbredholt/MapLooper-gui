@@ -1,0 +1,6 @@
+[submodule "MapLooper"]
+	path = MapLooper
+	url = https://github.com/mathiasbredholt/MapLooper.git
+[submodule "Link"]
+	path = Link
+	url = https://github.com/ableton/Link.git
