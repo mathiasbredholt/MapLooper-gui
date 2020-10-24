@@ -1,7 +1,7 @@
-<img src="misc/mapperGUI.png" width="600">
+<img src="misc/MapLooper-gui.png" width="600">
 
-# mapperGUI
-A simple JUCE-based GUI with sliders and buttons for testing libmapper applications
+# MapLooper-gui
+MapLooper demo with JUCE-based GUI
 
 ### Build instructions
 - Install [libmapper](https://github.com/libmapper/libmapper)
