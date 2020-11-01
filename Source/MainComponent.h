@@ -25,44 +25,59 @@ class MainComponent : public Component,
   //==============================================================================
   MainComponent() {
     addAndMakeVisible(inputSlider);
-    addAndMakeVisible(delaySlider);
-    addAndMakeVisible(modulationSlider);
     addAndMakeVisible(outputSlider);
+    addAndMakeVisible(lengthSlider);
+    addAndMakeVisible(modulationSlider);
+    addAndMakeVisible(ppqnSlider);
+    addAndMakeVisible(tempoSlider);
     addAndMakeVisible(muteButton);
-    // addAndMakeVisible(button2);
 
     loop = mapLooper.createLoop("loop1");
 
     inputSlider.addListener(this);
-    delaySlider.addListener(this);
+    lengthSlider.addListener(this);
     modulationSlider.addListener(this);
     outputSlider.addListener(this);
+    ppqnSlider.addListener(this);
+    tempoSlider.addListener(this);
     muteButton.addListener(this);
-    button2.addListener(this);
 
     inputSliderLabel.setText("input", juce::dontSendNotification);
     inputSliderLabel.attachToComponent(&inputSlider, true);
 
-    delaySliderLabel.setText("delay", juce::dontSendNotification);
-    delaySliderLabel.attachToComponent(&delaySlider, true);
+    lengthSliderLabel.setText("length", juce::dontSendNotification);
+    lengthSliderLabel.attachToComponent(&lengthSlider, true);
 
-    modulationSliderLabel.setText("mod", juce::dontSendNotification);
+    modulationSliderLabel.setText("noise", juce::dontSendNotification);
     modulationSliderLabel.attachToComponent(&modulationSlider, true);
 
     outputSliderLabel.setText("output", juce::dontSendNotification);
     outputSliderLabel.attachToComponent(&outputSlider, true);
+    outputSlider.setEnabled(false);
+
+    ppqnSliderLabel.setText("division", juce::dontSendNotification);
+    ppqnSliderLabel.attachToComponent(&ppqnSlider, true);
+
+    tempoSliderLabel.setText("tempo", juce::dontSendNotification);
+    tempoSliderLabel.attachToComponent(&tempoSlider, true);
 
     muteButtonLabel.setText("muted", juce::dontSendNotification);
     muteButtonLabel.attachToComponent(&muteButton, true);
 
-    button2Label.setText("button2", juce::dontSendNotification);
-    button2Label.attachToComponent(&button2, true);
-
     setSize(600, 400);
 
     inputSlider.setRange(0, 1);
-    delaySlider.setRange(-100, -1, 1);
-    delaySlider.setValue(-100);
+    lengthSlider.setRange(0, 16.0);
+    lengthSlider.setTextValueSuffix(" beats");
+    lengthSlider.setNumDecimalPlacesToDisplay(2);
+    lengthSlider.setValue(loop->getLength());
+    ppqnSlider.setRange(2, 96, 1);
+    ppqnSlider.setTextValueSuffix(" ppqn");
+    tempoSlider.setRange(20, 255);
+    tempoSlider.setNumDecimalPlacesToDisplay(1);
+    tempoSlider.setTextValueSuffix(" bpm");
+    tempoSlider.setValue(mapLooper.getTempo());
+    ppqnSlider.setValue(loop->getPulsesPerQuarterNote());
     modulationSlider.setRange(0, 1);
     outputSlider.setRange(0, 1);
 
@@ -84,25 +99,30 @@ class MainComponent : public Component,
   void paint(Graphics& g) override {}
 
   void resized() override {
-    auto area = getLocalBounds().reduced(96, 48);
-    inputSlider.setBounds(area.removeFromTop(48));
-    delaySlider.setBounds(area.removeFromTop(48));
-    modulationSlider.setBounds(area.removeFromTop(48));
-    outputSlider.setBounds(area.removeFromTop(48));
-    muteButton.setBounds(area.removeFromTop(48));
-    button2.setBounds(area.removeFromTop(48));
+    const int spacing = 40;
+    auto area = getLocalBounds().reduced(96, spacing);
+    inputSlider.setBounds(area.removeFromTop(spacing));
+    outputSlider.setBounds(area.removeFromTop(spacing));
+    lengthSlider.setBounds(area.removeFromTop(spacing));
+    modulationSlider.setBounds(area.removeFromTop(spacing));
+    ppqnSlider.setBounds(area.removeFromTop(spacing));
+    tempoSlider.setBounds(area.removeFromTop(spacing));
+    muteButton.setBounds(area.removeFromTop(spacing));
   }
 
   void sliderValueChanged(Slider* slider) override {
     if (slider == &inputSlider) {
       float val = inputSlider.getValue();
       mpr_sig_set_value(loop->sigIn, 0, 1, MPR_FLT, &val);
-    } else if (slider == &delaySlider) {
-      float val = delaySlider.getValue();
-      mpr_sig_set_value(loop->sigDelay, 0, 1, MPR_FLT, &val);
+    } else if (slider == &lengthSlider) {
+      loop->setLength(lengthSlider.getValue());
     } else if (slider == &modulationSlider) {
       float val = modulationSlider.getValue();
       mpr_sig_set_value(loop->sigMod, 0, 1, MPR_FLT, &val);
+    } else if (slider == &ppqnSlider) {
+      loop->setPulsesPerQuarterNote(ppqnSlider.getValue());
+    } else if (slider == &tempoSlider) {
+      mapLooper.setTempo(tempoSlider.getValue());
     }
   }
 
@@ -126,25 +146,24 @@ class MainComponent : public Component,
     if (button == &muteButton) {
       int val = muteButton.getToggleState();
       mpr_sig_set_value(loop->sigMute, 0, 1, MPR_INT32, &val);
-    } else if (button == &button2) {
-      int val = button2.getToggleState();
-      // mpr_sig_set_value(sigButton2, 0, 1, MPR_INT32, &val);
     }
   }
 
  private:
   Slider inputSlider;
   Label inputSliderLabel;
-  Slider delaySlider;
-  Label delaySliderLabel;
+  Slider lengthSlider;
+  Label lengthSliderLabel;
   Slider modulationSlider;
   Label modulationSliderLabel;
   Slider outputSlider;
   Label outputSliderLabel;
+  Slider ppqnSlider;
+  Label ppqnSliderLabel;
+  Slider tempoSlider;
+  Label tempoSliderLabel;
   ToggleButton muteButton;
   Label muteButtonLabel;
-  ToggleButton button2;
-  Label button2Label;
   MapLooper::MapLooper mapLooper;
   MapLooper::Loop* loop;
 
