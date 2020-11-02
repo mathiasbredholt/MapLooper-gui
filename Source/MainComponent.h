@@ -32,7 +32,7 @@ class MainComponent : public Component,
     addAndMakeVisible(tempoSlider);
     addAndMakeVisible(muteButton);
 
-    loop = mapLooper.createLoop("loop1");
+    loop.reset(mapLooper.createLoop("loop1"));
 
     inputSlider.addListener(this);
     lengthSlider.addListener(this);
@@ -88,7 +88,7 @@ class MainComponent : public Component,
 
   void timerCallback() override {
     mapLooper.update(0);
-    const void* val = mpr_sig_get_value(loop->sigOut, 0, 0);
+    const void* val = mpr_sig_get_value(loop->getOutputSignal(), 0, 0);
     if (val) {
       const MessageManagerLock mmLock;
       outputSlider.setValue(*((float*)val));
@@ -113,12 +113,12 @@ class MainComponent : public Component,
   void sliderValueChanged(Slider* slider) override {
     if (slider == &inputSlider) {
       float val = inputSlider.getValue();
-      mpr_sig_set_value(loop->sigIn, 0, 1, MPR_FLT, &val);
+      mpr_sig_set_value(loop->getInputSignal(), 0, 1, MPR_FLT, &val);
     } else if (slider == &lengthSlider) {
       loop->setLength(lengthSlider.getValue());
     } else if (slider == &modulationSlider) {
       float val = modulationSlider.getValue();
-      mpr_sig_set_value(loop->sigMod, 0, 1, MPR_FLT, &val);
+      mpr_sig_set_value(loop->getModulationSignal(), 0, 1, MPR_FLT, &val);
     } else if (slider == &ppqnSlider) {
       loop->setPulsesPerQuarterNote(ppqnSlider.getValue());
     } else if (slider == &tempoSlider) {
@@ -129,14 +129,14 @@ class MainComponent : public Component,
   void sliderDragStarted(Slider* slider) override {
     float val = 1.0f;
     if (slider == &inputSlider) {
-      mpr_sig_set_value(loop->sigRecord, 0, 1, MPR_FLT, &val);
+      mpr_sig_set_value(loop->getRecordSignal(), 0, 1, MPR_FLT, &val);
     }
   }
 
   void sliderDragEnded(Slider* slider) override {
     float val = 0.0f;
     if (slider == &inputSlider) {
-      mpr_sig_set_value(loop->sigRecord, 0, 1, MPR_FLT, &val);
+      mpr_sig_set_value(loop->getRecordSignal(), 0, 1, MPR_FLT, &val);
     }
   }
 
@@ -145,7 +145,7 @@ class MainComponent : public Component,
   void buttonStateChanged(Button* button) override {
     if (button == &muteButton) {
       int val = muteButton.getToggleState();
-      mpr_sig_set_value(loop->sigMute, 0, 1, MPR_INT32, &val);
+      mpr_sig_set_value(loop->getMuteSignal(), 0, 1, MPR_INT32, &val);
     }
   }
 
@@ -165,7 +165,7 @@ class MainComponent : public Component,
   ToggleButton muteButton;
   Label muteButtonLabel;
   MapLooper::MapLooper mapLooper;
-  MapLooper::Loop* loop;
+  std::unique_ptr<MapLooper::Loop> loop;
 
   static void sliderHandler(mpr_sig sig, mpr_sig_evt evt, mpr_id inst,
                             int length, mpr_type type, const void* value,
