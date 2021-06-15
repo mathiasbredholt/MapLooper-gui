@@ -28,7 +28,7 @@ class MainComponent : public Component,
     addAndMakeVisible(outputSlider);
     addAndMakeVisible(lengthSlider);
     addAndMakeVisible(modulationSlider);
-    addAndMakeVisible(ppqnSlider);
+    addAndMakeVisible(divisionSlider);
     addAndMakeVisible(tempoSlider);
     addAndMakeVisible(muteButton);
 
@@ -38,7 +38,7 @@ class MainComponent : public Component,
     lengthSlider.addListener(this);
     modulationSlider.addListener(this);
     outputSlider.addListener(this);
-    ppqnSlider.addListener(this);
+    divisionSlider.addListener(this);
     tempoSlider.addListener(this);
     muteButton.addListener(this);
 
@@ -55,8 +55,8 @@ class MainComponent : public Component,
     outputSliderLabel.attachToComponent(&outputSlider, true);
     outputSlider.setEnabled(false);
 
-    ppqnSliderLabel.setText("division", juce::dontSendNotification);
-    ppqnSliderLabel.attachToComponent(&ppqnSlider, true);
+    divisionSliderLabel.setText("division", juce::dontSendNotification);
+    divisionSliderLabel.attachToComponent(&divisionSlider, true);
 
     tempoSliderLabel.setText("tempo", juce::dontSendNotification);
     tempoSliderLabel.attachToComponent(&tempoSlider, true);
@@ -70,14 +70,11 @@ class MainComponent : public Component,
     lengthSlider.setRange(0, 16.0);
     lengthSlider.setTextValueSuffix(" beats");
     lengthSlider.setNumDecimalPlacesToDisplay(2);
-    lengthSlider.setValue(loop->getLength());
-    ppqnSlider.setRange(2, 96, 1);
-    ppqnSlider.setTextValueSuffix(" ppqn");
+    divisionSlider.setRange(2, 96, 1);
+    divisionSlider.setTextValueSuffix(" ppqn");
     tempoSlider.setRange(20, 255);
     tempoSlider.setNumDecimalPlacesToDisplay(1);
     tempoSlider.setTextValueSuffix(" bpm");
-    tempoSlider.setValue(mapLooper.getTempo());
-    ppqnSlider.setValue(loop->getPulsesPerQuarterNote());
     modulationSlider.setRange(0, 1);
     outputSlider.setRange(0, 1);
 
@@ -91,7 +88,12 @@ class MainComponent : public Component,
     const void* val = mpr_sig_get_value(loop->getOutputSignal(), 0, 0);
     if (val) {
       const MessageManagerLock mmLock;
-      outputSlider.setValue(*((float*)val));
+      inputSlider.setValue(*((float*) mpr_sig_get_value(loop->getInputSignal(), 0, 0)), dontSendNotification);
+      lengthSlider.setValue(*((float*) mpr_sig_get_value(loop->getLengthSignal(), 0, 0)), dontSendNotification);
+      modulationSlider.setValue(*((float*) mpr_sig_get_value(loop->getModulationSignal(), 0, 0)), dontSendNotification);
+      outputSlider.setValue(*((float*) val), dontSendNotification);
+      tempoSlider.setValue(mapLooper.getTempo());
+      divisionSlider.setValue(*((float*) mpr_sig_get_value(loop->getDivisionSignal(), 0, 0)), dontSendNotification);
     }
   }
 
@@ -105,24 +107,27 @@ class MainComponent : public Component,
     outputSlider.setBounds(area.removeFromTop(spacing));
     lengthSlider.setBounds(area.removeFromTop(spacing));
     modulationSlider.setBounds(area.removeFromTop(spacing));
-    ppqnSlider.setBounds(area.removeFromTop(spacing));
+    divisionSlider.setBounds(area.removeFromTop(spacing));
     tempoSlider.setBounds(area.removeFromTop(spacing));
     muteButton.setBounds(area.removeFromTop(spacing));
   }
 
   void sliderValueChanged(Slider* slider) override {
     if (slider == &inputSlider) {
-      float val = inputSlider.getValue();
+      float val = slider->getValue();
       mpr_sig_set_value(loop->getInputSignal(), 0, 1, MPR_FLT, &val);
     } else if (slider == &lengthSlider) {
-      loop->setLength(lengthSlider.getValue());
+      float val = slider->getValue();
+      mpr_sig_set_value(loop->getLengthSignal(), 0, 1, MPR_FLT, &val);
     } else if (slider == &modulationSlider) {
-      float val = modulationSlider.getValue();
+      float val = slider->getValue();
       mpr_sig_set_value(loop->getModulationSignal(), 0, 1, MPR_FLT, &val);
-    } else if (slider == &ppqnSlider) {
-      loop->setPulsesPerQuarterNote(ppqnSlider.getValue());
+    } else if (slider == &divisionSlider) {
+      int val = slider->getValue();
+      mpr_sig_set_value(loop->getDivisionSignal(), 0, 1, MPR_INT32, &val);
     } else if (slider == &tempoSlider) {
-      mapLooper.setTempo(tempoSlider.getValue());
+      float val = slider->getValue();
+      mapLooper.setTempo(val);
     }
   }
 
@@ -158,8 +163,8 @@ class MainComponent : public Component,
   Label modulationSliderLabel;
   Slider outputSlider;
   Label outputSliderLabel;
-  Slider ppqnSlider;
-  Label ppqnSliderLabel;
+  Slider divisionSlider;
+  Label divisionSliderLabel;
   Slider tempoSlider;
   Label tempoSliderLabel;
   ToggleButton muteButton;
